@@ -2,55 +2,67 @@
 
 class Parser
 {
+	const STATE_NULL = null;
+	const STATE_LITERAL = 1;
+	const STATE_PHRASE = 2;
 	public static function parse($string)
 	{
 		$stack = array();
 		$stackExpr = array();
+		$state = self::STATE_NULL;
 		$string = self::adapt($string);
-		$expression = new ContainerExpression;
-		$expression->addChild(new StringExpression());
+		$expression = new Container;
 
 		for ($i = 0; $i < mb_strlen($string); $i++) {
 			$char = mb_substr($string, $i, 1);
 
-			if (count($stack) > 0 && end($stack) == '"' && $char != '"') {
+			if ($state == self::STATE_PHRASE && $char != '"') {
 				$expression->getLastChild()->appendString($char);
 			} else {
 				switch ($char) {
 					case ' ':
-						$expression->addChild(new StringExpression());
+						$state = self::STATE_NULL;
 						break;
+
 					case '"':
 						if (count($stack) > 0 && end($stack) == '"') {
 							// закрываем фразу
-							$expression->addChild(new StringExpression);
+							$state = self::STATE_NULL;
 							array_pop($stack);
 						} else {
 							// открываем фразу
 							$expression->addChild($ph = new Phrase);
+							$state = self::STATE_PHRASE;
 							array_push($stack, $char);
 						}
 						break;
+
 					case '(':
 						// открываем выражение
-						$expression->addChild($cnt = new ContainerExpression);
-						$cnt->addChild(new StringExpression);
+						$expression->addChild($cnt = new Container);
+						$state = self::STATE_NULL;
 						array_push($stack, ')');
 						array_push($stackExpr, $expression);
 						$expression = $cnt;
 						break;
+
 					case ')':
 						if (count($stack) > 0 && end($stack) == ')') {
 							// есть что закрыть — закрываем выражение
 							$expression = array_pop($stackExpr);
-							$expression->addChild(new StringExpression);
+							$state = self::STATE_NULL;
 							array_pop($stack);
 						} else {
 							// скобка "не в тему"
 							$expression->getLastChild()->appendString($char);
 						}
 						break;
+
 					default:
+						if ($state == self::STATE_NULL) {
+							$expression->addChild(new Literal);
+							$state = self::STATE_LITERAL;
+						}
 						$expression->getLastChild()->appendString($char);
 						break; 
 				}
@@ -70,11 +82,9 @@ class Parser
 	}
 }
 
-class Expression {
+class Expression {}
 
-}
-
-class ContainerExpression extends Expression {
+class Container extends Expression {
 	private $childNodes = array();
 
 	public function addChild(Expression $expression)
@@ -89,11 +99,14 @@ class ContainerExpression extends Expression {
 
 	public function __toString()
 	{
-		return implode(' ', $this->childNodes);
+		if (count($this->childNodes) < 2) {
+			return implode(' ', $this->childNodes);
+		}
+		return '(' . implode(' ', $this->childNodes) . ')';
 	}
 }
 
-class StringExpression extends Expression {
+class Literal extends Expression {
 	private $string = "";
 
 	public function __construct($string = "")
@@ -112,7 +125,12 @@ class StringExpression extends Expression {
 	}
 }
 
-class Phrase extends StringExpression {}
+class Phrase extends Literal {
+	public function __toString()
+	{
+		return '"' . parent::__toString() . '"';
+	}
+}
 
 class Operator extends Expression {
 	private $priority = 0;
@@ -121,7 +139,8 @@ class Operator extends Expression {
 $e = Parser::parse('проверка  трех слов');
 $e = Parser::parse('проверка (трех с половиной) слов');
 $e = Parser::parse('-проверка трех -слов');
-$e = Parser::parse('(проверка (трех "1""2)")слов');
 $e = Parser::parse('O ("A" "B)" D');
 $e = Parser::parse('проверка  (((трех))) "слов');
-var_dump($e);
+$e = Parser::parse('(проверка (трех "ФР1""ФР2)")слов');
+$e = Parser::parse('(A | B) | (C D) "F"');
+var_dump("$e");
