@@ -82,10 +82,16 @@ class Parser
 	}
 }
 
-class Expression {}
+abstract class Expression {
+	abstract public function isEqualWith(Expression $expression);
+}
 
 class Container extends Expression {
 	private $childNodes = array();
+
+	public function __construct(array $nodes = array()) {
+		$this->childNodes = $nodes;
+	}
 
 	public function addChild(Expression $expression)
 	{
@@ -95,6 +101,31 @@ class Container extends Expression {
 	public function getLastChild()
 	{
 		return end($this->childNodes);
+	}
+
+	public function getChildNodes()
+	{
+		return $this->childNodes;
+	}
+
+	public function isEqualWith(Expression $expression)
+	{
+		if (!$expression instanceof static) {
+			return false;
+		}
+		
+		$nodes2 = $expression->getChildNodes();
+		foreach ($this->childNodes as $key => $node) {
+			if (!isset($nodes2[$key])) {
+				return false;
+			}
+			$node2 = $nodes2[$key];
+			if (!$node->isEqualWith($node2)) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	public function __toString()
@@ -119,6 +150,11 @@ class Literal extends Expression {
 		$this->string .= $string;
 	}
 
+	public function isEqualWith(Expression $expression)
+	{
+		return $expression instanceof static && (string)$expression == (string)$this;
+	}
+
 	public function __toString()
 	{
 		return $this->string;
@@ -134,13 +170,17 @@ class Phrase extends Literal {
 
 class Operator extends Expression {
 	private $priority = 0;
+	public function isEqualWith(Expression $expression)
+	{
+		throw new Exception("Not implemented", 1);
+	}
 }
 
-$e = Parser::parse('проверка  трех слов');
-$e = Parser::parse('проверка (трех с половиной) слов');
-$e = Parser::parse('-проверка трех -слов');
-$e = Parser::parse('O ("A" "B)" D');
-$e = Parser::parse('проверка  (((трех))) "слов');
-$e = Parser::parse('(проверка (трех "ФР1""ФР2)")слов');
-$e = Parser::parse('(A | B) | (C D) "F"');
-var_dump("$e");
+// $e = Parser::parse('проверка  трех слов');
+// $e = Parser::parse('проверка (трех с половиной) слов');
+// $e = Parser::parse('-проверка трех -слов');
+// $e = Parser::parse('O ("A" "B)" D');
+// $e = Parser::parse('проверка  (((трех))) "слов');
+// $e = Parser::parse('(проверка (трех "ФР1""ФР2)")слов');
+// $e = Parser::parse('(A | B) | (C D) "F"');
+// var_dump("$e");
