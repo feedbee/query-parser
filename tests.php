@@ -20,6 +20,7 @@ $tests = array(
 	'-проверка трех -слов' => new Container(array(
 		new Literal('-проверка'),
 		new Literal('трех'),
+		// new NotOperator(),
 		new Literal('-слов'),
 	)),
 	'L ("A" "B)" R' => new Container(array(
@@ -49,10 +50,10 @@ $tests = array(
 	'(A | B) | (C D) "F"' => new Container(array(
 		new Container(array(
 			new Literal('A'),
-			new Literal('|'),
+			new OrOperator(),
 			new Literal('B'),
 		)),
-		new Literal('|'),
+		new OrOperator(),
 		new Container(array(
 			new Literal('C'),
 			new Literal('D'),
@@ -64,7 +65,7 @@ $tests = array(
 $i = $ok = $fail = 0;
 foreach ($tests as $input => $etalon) {
 	$i++;
-	$result = Parser::parse($input);
+	$result = Parser::detectOperators(Parser::parse($input));
 
 	if ($result->isEqualWith($etalon)) {
 		echo "\033[0;32m[$i]\033[0m Success: `{$input}`" . PHP_EOL;

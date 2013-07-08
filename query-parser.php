@@ -80,13 +80,33 @@ class Parser
 	{
 		return preg_replace('/\s+/', ' ', $string); // replace any count of any space characted with single space
 	}
+
+	static public function detectOperators(Container $expression)
+	{
+		$operators = array('NotOperator', 'OrOperator');
+
+		foreach ($expression as $key => $node) {
+			if ($node instanceof Container) {
+				self::detectOperators($node);
+			} else {
+				foreach ($operators as $operatorClassName) {
+					$result = $operatorClassName::detectAndTranform($node);
+					$expression->replaceNode($key, $result);
+				}
+			}
+		}
+
+		return $expression;
+	}
 }
 
-abstract class Expression {
+abstract class Expression
+{
 	abstract public function isEqualWith(Expression $expression);
 }
 
-class Container extends Expression {
+class Container extends Expression implements IteratorAggregate
+{
 	private $childNodes = array();
 
 	public function __construct(array $nodes = array()) {
@@ -106,6 +126,14 @@ class Container extends Expression {
 	public function getChildNodes()
 	{
 		return $this->childNodes;
+	}
+
+	public function replaceNode($key, Expression $node)
+	{
+		if (!is_array($node)) {
+			$node = array($node);
+		}
+		array_splice($this->childNodes, $key, 1, $node);
 	}
 
 	public function isEqualWith(Expression $expression)
@@ -135,9 +163,14 @@ class Container extends Expression {
 		}
 		return '(' . implode(' ', $this->childNodes) . ')';
 	}
+
+	public function getIterator() {
+		return new ArrayIterator($this->childNodes);
+	}
 }
 
-class Literal extends Expression {
+class Literal extends Expression
+{
 	private $string = "";
 
 	public function __construct($string = "")
@@ -161,26 +194,62 @@ class Literal extends Expression {
 	}
 }
 
-class Phrase extends Literal {
+class Phrase extends Literal
+{
 	public function __toString()
 	{
 		return '"' . parent::__toString() . '"';
 	}
 }
 
-class Operator extends Expression {
-	private $priority = 0;
+class Operator extends Expression
+{
+	protected $priority = 0;
+
+	static public function detectAndTranform(Expression $expression)
+	{
+		throw new Exception('Every operator class must override this static method', 2);
+	}
+
 	public function isEqualWith(Expression $expression)
 	{
-		throw new Exception("Not implemented", 1);
+		return $expression instanceof static;
 	}
 }
 
-// $e = Parser::parse('проверка  трех слов');
-// $e = Parser::parse('проверка (трех с половиной) слов');
-// $e = Parser::parse('-проверка трех -слов');
-// $e = Parser::parse('O ("A" "B)" D');
-// $e = Parser::parse('проверка  (((трех))) "слов');
-// $e = Parser::parse('(проверка (трех "ФР1""ФР2)")слов');
-// $e = Parser::parse('(A | B) | (C D) "F"');
-// var_dump("$e");
+class SimpleStandaloneOperator extends Operator
+{
+	static protected $symbol = null;
+
+	static public function detectAndTranform(Expression $expression)
+	{
+		if (is_null(static::$symbol)) {
+			throw new Exception('Operator symbol must be declared in successor-classes', 3);
+		}
+		if ($expression instanceof Literal) {
+			$string = ((string)$expression);
+			if ($string === static::$symbol) {
+				return new static();
+			}
+		}
+
+		return $expression;
+	}
+
+	public function __toString()
+	{
+		return static::$symbol;
+	}
+}
+
+class NotOperator extends SimpleStandaloneOperator
+{
+	protected $priority = 3;
+	static protected $symbol = '-';
+}
+
+class OrOperator extends SimpleStandaloneOperator
+{
+	protected $priority = 1;
+	static protected $symbol = '|';
+}
