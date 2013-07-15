@@ -78,7 +78,11 @@ class Parser
 
 	private static function adapt($string)
 	{
-		return preg_replace('/\s+/', ' ', $string); // replace any count of any space characted with single space
+		$string = preg_replace('/(?<!^|\s)\|(?!\s|$)/u', ' | ', $string); // wrap | with spaces
+		$string = preg_replace('/(?<=^|\s)-(?=\S+)/u', '- ', $string); // minus in word start position is operator: add space after
+		$string = preg_replace('/\s+/u', ' ', $string); // replace any count of any space characted with single space
+
+		return $string;
 	}
 
 	static public function detectOperators(Container $expression)
@@ -91,7 +95,10 @@ class Parser
 			} else {
 				foreach ($operators as $operatorClassName) {
 					$result = $operatorClassName::detectAndTranform($node);
-					$expression->replaceNode($key, $result);
+					if ($result != $node) {
+						$expression->replaceNode($key, $result);
+						continue;
+					}
 				}
 			}
 		}

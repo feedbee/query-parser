@@ -18,10 +18,11 @@ $tests = array(
 		new Literal('слов'),
 	)),
 	'-проверка трех -слов' => new Container(array(
-		new Literal('-проверка'),
+		new NotOperator(),
+		new Literal('проверка'),
 		new Literal('трех'),
-		// new NotOperator(),
-		new Literal('-слов'),
+		new NotOperator(),
+		new Literal('слов'),
 	)),
 	'L ("A" "B)" R' => new Container(array(
 		new Literal('L'),
@@ -47,7 +48,7 @@ $tests = array(
 		)),
 		new Literal('слов'),
 	)))),
-	'(A | B) | (C D) "F"' => new Container(array(
+	'(A|B) | (C - D) "F"' => new Container(array(
 		new Container(array(
 			new Literal('A'),
 			new OrOperator(),
@@ -56,6 +57,7 @@ $tests = array(
 		new OrOperator(),
 		new Container(array(
 			new Literal('C'),
+			new NotOperator(),
 			new Literal('D'),
 		)),
 		new Phrase('F'),
