@@ -1,4 +1,5 @@
 <?php
+namespace Parser;
 
 class Parser
 {
@@ -94,6 +95,7 @@ class Parser
 				self::detectOperators($node);
 			} else {
 				foreach ($operators as $operatorClassName) {
+					$operatorClassName = 'Parser\\' . $operatorClassName;
 					$result = $operatorClassName::detectAndTranform($node);
 					if ($result != $node) {
 						$expression->replaceNode($key, $result);
@@ -112,7 +114,7 @@ abstract class Expression
 	abstract public function isEqualWith(Expression $expression);
 }
 
-class Container extends Expression implements IteratorAggregate
+class Container extends Expression implements \IteratorAggregate
 {
 	private $childNodes = array();
 
@@ -172,7 +174,7 @@ class Container extends Expression implements IteratorAggregate
 	}
 
 	public function getIterator() {
-		return new ArrayIterator($this->childNodes);
+		return new \ArrayIterator($this->childNodes);
 	}
 }
 
@@ -211,6 +213,8 @@ class Phrase extends Literal
 
 class Operator extends Expression
 {
+	const PRIORITY_MIN = 1;
+	const PRIORITY_MAX = 3;
 	protected $priority = 0;
 
 	static public function detectAndTranform(Expression $expression)
@@ -221,6 +225,11 @@ class Operator extends Expression
 	public function isEqualWith(Expression $expression)
 	{
 		return $expression instanceof static;
+	}
+
+	public function getPriority()
+	{
+		return $this->priority;
 	}
 }
 
@@ -251,12 +260,12 @@ class SimpleStandaloneOperator extends Operator
 
 class NotOperator extends SimpleStandaloneOperator
 {
-	protected $priority = 3;
+	protected $priority = 1;
 	static protected $symbol = '-';
 }
 
 class OrOperator extends SimpleStandaloneOperator
 {
-	protected $priority = 1;
+	protected $priority = 3;
 	static protected $symbol = '|';
 }

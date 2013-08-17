@@ -2,6 +2,9 @@
 
 require 'query-parser.php';
 
+use Parser\Parser, Parser\Literal, Parser\Phrase, Parser\Container,
+	Parser\NotOperator as ParserNotOperator, Parser\OrOperator as ParserOrOperator;
+
 $tests = array(
 	'проверка  трех слов' => new Container(array(
 		new Literal('проверка'),
@@ -18,10 +21,10 @@ $tests = array(
 		new Literal('слов'),
 	)),
 	'-проверка трех -слов' => new Container(array(
-		new NotOperator(),
+		new ParserNotOperator(),
 		new Literal('проверка'),
 		new Literal('трех'),
-		new NotOperator(),
+		new ParserNotOperator(),
 		new Literal('слов'),
 	)),
 	'L ("A" "B)" R' => new Container(array(
@@ -51,13 +54,13 @@ $tests = array(
 	'(A|B) | (C - D) "F"' => new Container(array(
 		new Container(array(
 			new Literal('A'),
-			new OrOperator(),
+			new ParserOrOperator(),
 			new Literal('B'),
 		)),
-		new OrOperator(),
+		new ParserOrOperator(),
 		new Container(array(
 			new Literal('C'),
-			new NotOperator(),
+			new ParserNotOperator(),
 			new Literal('D'),
 		)),
 		new Phrase('F'),
