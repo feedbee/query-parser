@@ -100,8 +100,8 @@ foreach ($tests as $input => $etalon) {
 		echo "\033[0;31m[$i]\033[0m Failure: `{$input}`" . PHP_EOL;
 		$fail++;
 		if (1) {
-			var_dump((string)$result);
-			var_dump((string)$etalon);
+			\Tree\Dumper::dump($result);
+			\Tree\Dumper::dump($etalon);
 		}
 	}
 }

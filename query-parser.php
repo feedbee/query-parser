@@ -233,6 +233,10 @@ class Invertor implements \IteratorAggregate, \ArrayAccess, \Countable
 abstract class Expression
 {
 	abstract public function isEqualWith(Expression $expression);
+
+	abstract public function dump();
+
+	abstract public function __toString();
 }
 
 class Container extends Expression implements \IteratorAggregate, \ArrayAccess, \Countable
@@ -291,6 +295,11 @@ class Container extends Expression implements \IteratorAggregate, \ArrayAccess, 
 		return implode(' ', $this->childNodes);
 	}
 
+	public function dump()
+	{
+		return '{·}';
+	}
+
 	public function getIterator() {
 		return new \ArrayIterator($this->childNodes);
 	}
@@ -333,7 +342,12 @@ class Group extends Container
 	public function __toString()
 	{
 		return '(' . parent::__toString() . ')';
-	}	
+	}
+
+	public function dump()
+	{
+		return '(·)';
+	}
 }
 
 class Literal extends Expression
@@ -359,6 +373,11 @@ class Literal extends Expression
 	{
 		return $this->string;
 	}
+
+	public function dump()
+	{
+		return "l\"{$this}\"";
+	}
 }
 
 class Phrase extends Literal
@@ -367,9 +386,14 @@ class Phrase extends Literal
 	{
 		return '"' . parent::__toString() . '"';
 	}
+
+	public function dump()
+	{
+		return "p{$this}";
+	}
 }
 
-class Operator extends Expression
+abstract class Operator extends Expression
 {
 	const PRIORITY_MIN = 1;
 	const PRIORITY_MAX = 3;
@@ -406,6 +430,11 @@ class Operator extends Expression
 	public function getType()
 	{
 		return $this->type;
+	}
+
+	public function dump()
+	{
+		return "[$this] <po>";
 	}
 }
 
@@ -469,10 +498,18 @@ abstract class Operator extends \Parser\Expression
 	{
 		$this->parserOperator = $parserOperator;
 	}
+	public function getParserOperator()
+	{
+		return $this->parserOperator;
+	}
 	
 	public function setOperands(array $operands)
 	{
 		$this->operands = $operands;
+	}
+	public function getOperands()
+	{
+		return $this->operands;
 	}
 
 	abstract public function extract();
@@ -480,6 +517,11 @@ abstract class Operator extends \Parser\Expression
 	public function __toString()
 	{
 		return (string)($this->extract());
+	}
+
+	public function dump()
+	{
+		return "[{$this->getParserOperator()}] <to>";
 	}
 
 	public function isEqualWith(\Parser\Expression $expression)
@@ -501,5 +543,27 @@ class BinaryOperator extends Operator
 	public function extract()
 	{
 		return new Container(array($this->operands[0], $this->parserOperator, $this->operands[1]));
+	}
+}
+
+
+class Dumper
+{
+	static public function dump(/*\Traversable*/ $container, $level = 0)
+	{
+		!$level && print '╤' . PHP_EOL;
+		foreach ($container as $item) {
+			if ($item instanceof Container) {
+				print str_repeat('│  ', $level) . '├╴' . $item->dump() . PHP_EOL;
+				self::dump($item, $level + 1);
+
+			} else if ($item instanceof Operator) {
+				print str_repeat('│  ', $level) . '├╴' . $item->dump() . PHP_EOL;
+				self::dump($item->getOperands(), $level + 1);
+
+			} else {
+				print str_repeat('│  ', $level) . '├╴' . $item->dump() . PHP_EOL;
+			}
+		}
 	}
 }
