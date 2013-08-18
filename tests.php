@@ -92,7 +92,7 @@ $i = $ok = $fail = 0;
 foreach ($tests as $input => $etalon) {
 	$i++;
 	$result = Parser::grabOperatorsArguments(Parser::detectOperators(Parser::parse($input)));
-
+\Tree\Dumper::dump($result);
 	if ((string)$result == (string)$etalon) {
 		echo "\033[0;32m[$i]\033[0m Success: `{$input}`" . PHP_EOL;
 		$ok++;
@@ -107,4 +107,5 @@ foreach ($tests as $input => $etalon) {
 }
 
 echo "All tests complated. \033[0;32m$ok\033[0m test" . ($ok > 1 ? 's' : '')
-	. " successed, \033[0;31m$fail\033[0m test" . ($fail > 1 ? 's' : '') . " failed." . PHP_EOL;
+	. " successed, " . ($fail > 0 ? "\033[0;31m" : '') . "$fail" . ("\033[0m")
+	. " test" . ($fail > 1 ? 's' : '') . " failed." . PHP_EOL;
