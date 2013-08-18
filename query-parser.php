@@ -79,8 +79,8 @@ class Parser
 
 	private static function adapt($string)
 	{
-		$string = preg_replace('/(?<!^|\s)\|(?!\s|$)/u', ' | ', $string); // wrap | with spaces
-		$string = preg_replace('/(?<=^|\s)-(?=\S+)/u', '- ', $string); // minus in word start position is operator: add space after
+		$string = preg_replace('/(?<!^|\W)\|(?!\W|$)/u', ' | ', $string); // wrap | with spaces
+		$string = preg_replace('/(?<=^|\W)-(?=\S+)/u', '- ', $string); // minus in word start position is operator: add space after
 		$string = preg_replace('/\s+/u', ' ', $string); // replace any count of any space characted with single space
 
 		return $string;
@@ -110,62 +110,123 @@ class Parser
 
 	static public function grabOperatorsArguments(Container $expression)
 	{
-		$coll = $expression;
+		foreach ($expression as $node) {
+			if ($node instanceof Container) {
+				self::grabOperatorsArguments($node);
+			}
+		}
 
+		$collection = $expression;
+		$invertor = new Invertor($collection);
+
+		$directions = array(Operator::DIRECTION_L2R, Operator::DIRECTION_R2L);
 		$priority = Operator::PRIORITY_MIN;
 		while ($priority <= Operator::PRIORITY_MAX) {
-			for ($i = 0; $i < count($coll); ) {
-				$item = $coll[$i];
-				if ($item instanceof Operator && $item->getPriority() == $priority) {
-					$operator = $item;
-					$type = $operator->getType();
-					if (!$type) { // is type set?
-						// skip
-						$i++;
-						continue;
-					}
+			foreach ($directions as $direction) {
 
-					if (!isset($coll[$i + 1])) { // has minimal arguments count?
-						// error (delete)
-						unset($coll[$i]);
-						continue;
-					}
-
-					if ($type == Operator::TYPE_UNARY) {
-						$direction = $operator->getDirection();
-						$operatorPlacementType = $direction == Operator::DIRECTION_L2R ? 'postfix' : 'prefix';
-						$operandIndex = $operatorPlacementType == 'postfix' ? $i - 1 : $i + 1;
+				$coll = $direction == Operator::DIRECTION_R2L ? $invertor : $collection;
+				for ($i = 0; $i < count($coll); ) {
+					$item = $coll[$i];
+					if ($item instanceof Operator
+							&& $item->getPriority() == $priority
+							&& $item->getDirection() == $direction) {
 						
-						$treeOpertator = new \Tree\UnaryOperator($operator, array($coll[$operandIndex]));
-						$coll[$i] = $treeOpertator;
+						$operator = $item;
+						$type = $operator->getType();
+						if (!$type) { // is type set?
+							// skip
+							$i++;
+							continue;
+						}
 
-						unset($coll[$operandIndex]);
-						// next (increment needed on postfix operation)
-						$operandIndex > $i && $i++;
-
-					} else if ($type == Operator::TYPE_BINARY) {
-						if (!isset($coll[$i - 1])) { // has two arguments?
+						if (!isset($coll[$i - 1])) { // has first required argument?
 							// error (delete)
 							unset($coll[$i]);
 							continue;
 						}
 
-						$treeOpertator = new \Tree\BinaryOperator($operator, array($coll[$i - 1], $coll[$i + 1]));
-						$coll[$i] = $treeOpertator;
+						if ($type == Operator::TYPE_UNARY) {
+							$treeOpertator = new \Tree\UnaryOperator($operator, array($coll[$i - 1]));
+							$coll[$i] = $treeOpertator;
 
-						unset($coll[$i - 1]);//$i-1
-						unset($coll[$i]); //$i+1 (shifted down after previous operation)
-						// next (no increment needed)
+							unset($coll[$i - 1]);
+							continue;
+							// next (no increment needed)
+
+						} else if ($type == Operator::TYPE_BINARY) {
+							if (!isset($coll[$i + 1])) { // has second arguments?
+								// error (delete)
+								unset($coll[$i]);
+								continue;
+							}
+
+							$treeOpertator = new \Tree\BinaryOperator($operator, array($coll[$i - 1], $coll[$i + 1]));
+							$coll[$i] = $treeOpertator;
+
+							unset($coll[$i - 1]);//$i-1
+							unset($coll[$i]); //$i+1 (shifted down after previous operation)
+							continue;
+							// next (no increment needed)
+						}
 					}
+					// skip
+					$i++;
 				}
-				// skip
-				$i++;
 			}
-
 			$priority++;
 		}
 
 		return $expression;
+	}
+}
+
+class Invertor implements \IteratorAggregate, \ArrayAccess, \Countable
+{
+	private $collection;
+
+	public function __construct($collection)
+	{
+		$this->collection = $collection;
+	}
+
+	private function invert($index)
+	{
+		return count($this->collection) - $index - 1;
+	}
+
+	public function __toString()
+	{
+		return $this->collection->__toString();
+	}
+
+	public function getIterator() {
+		return $this->collection->getIterator();
+	}
+
+
+	public function offsetSet($offset, $value)
+	{
+		return $this->collection->offsetSet($this->invert($offset), $value);
+	}
+
+	public function offsetExists($offset)
+	{
+		return $this->collection->offsetExists($this->invert($offset));
+	}
+
+	public function offsetUnset($offset)
+	{
+		$this->collection->offsetUnset($this->invert($offset));
+	}
+
+	public function offsetGet($offset)
+	{
+		return $this->collection->offsetGet($this->invert($offset));
+	}
+
+	public function count()
+	{
+		return $this->collection->count();
 	}
 }
 
@@ -271,9 +332,6 @@ class Group extends Container
 {
 	public function __toString()
 	{
-		if (count($this) < 2) {
-			return parent::__toString();
-		}
 		return '(' . parent::__toString() . ')';
 	}	
 }
