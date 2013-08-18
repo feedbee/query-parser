@@ -59,7 +59,7 @@ $tests = array(
 		new Group(array(
 			new Literal('A'),
 			new ParserOrOperator(),
-			new Literal('Bs'),
+			new Literal('B'),
 		)),
 		new ParserOrOperator(),
 		new Group(array(
