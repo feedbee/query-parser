@@ -2,8 +2,12 @@
 
 require 'query-parser.php';
 
+$opts = getopt("d", array('debug'));
+define('PARSER_DEBUG_MODE', isset($opts['d']) || isset($opts['debug']));
+
 use Parser\Parser, Parser\Literal, Parser\Phrase, Parser\Container, Parser\Group,
-	Parser\NotOperator as ParserNotOperator, Parser\OrOperator as ParserOrOperator;
+	Parser\NotOperator as ParserNotOperator, Parser\OrOperator as ParserOrOperator,
+	Dumper;
 
 $tests = array(
 	'проверка  трех слов' => new Container(array(
@@ -55,7 +59,7 @@ $tests = array(
 		new Group(array(
 			new Literal('A'),
 			new ParserOrOperator(),
-			new Literal('B'),
+			new Literal('Bs'),
 		)),
 		new ParserOrOperator(),
 		new Group(array(
@@ -92,16 +96,25 @@ $i = $ok = $fail = 0;
 foreach ($tests as $input => $etalon) {
 	$i++;
 	$result = Parser::grabOperatorsArguments(Parser::detectOperators(Parser::parse($input)));
-\Tree\Dumper::dump($result);
+
 	if ((string)$result == (string)$etalon) {
 		echo "\033[0;32m[$i]\033[0m Success: `{$input}`" . PHP_EOL;
 		$ok++;
+
+		if (PARSER_DEBUG_MODE) {
+			Dumper::dump($result);
+			print PHP_EOL;
+		}
 	} else {
 		echo "\033[0;31m[$i]\033[0m Failure: `{$input}`" . PHP_EOL;
 		$fail++;
-		if (1) {
-			\Tree\Dumper::dump($result);
-			\Tree\Dumper::dump($etalon);
+
+		if (PARSER_DEBUG_MODE) {
+			print PHP_EOL . "[$i] Result: " . PHP_EOL;
+			Dumper::dump($result);
+			print PHP_EOL . "[$i] Etalon: " . PHP_EOL;
+			Dumper::dump($etalon);
+			print PHP_EOL;
 		}
 	}
 }
