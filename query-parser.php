@@ -549,17 +549,51 @@ class BinaryOperator extends Operator
 
 class Dumper
 {
-	static public function dump(/*\Traversable*/ $container, $level = 0)
+	static public function dump(/*\Traversable*/ $container, $level = 0, $lastElementsMarks = array())
 	{
-		!$level && print '╤' . PHP_EOL;
+		!$level && print self::border("╤") . PHP_EOL;
+
+		$cntrChildrenCount = count($container);
+		$i = 0;
 		foreach ($container as $item) {
-			print str_repeat('│  ', $level) . '├╴' . $item->dump() . PHP_EOL;
-			
-			if ($item instanceof Container) {
-				self::dump($item, $level + 1);
-			} else if ($item instanceof Operator) {
-				self::dump($item->getOperands(), $level + 1);
+			$isLast = $i == $cntrChildrenCount - 1;
+
+			print self::repeat($level, $lastElementsMarks) . self::border(($isLast ? '└' : '├') . '╴') . self::header($item->dump()) . PHP_EOL;
+
+			$dumpClildren = null;
+			$item instanceof Container && $dumpClildren = $item;
+			$item instanceof Operator && $dumpClildren = $item->getOperands();
+
+			if ($dumpClildren) {
+				$newLastElementsMarks = array_merge($lastElementsMarks, array($isLast));
+				self::dump($dumpClildren, $level + 1, $newLastElementsMarks);
 			}
+
+			$i++;
 		}
+	}
+
+	static private function repeat($level, $lastElementsMarks)
+	{
+		$result = '';
+		for ($i = 0; $i < $level; $i++) {
+			$result .= self::border(!$lastElementsMarks[$i] ? '│  ' : '   ');
+		}
+
+		return $result;
+	}
+
+	const COLOR_BORDER_START = "\033[0;33m";
+	const COLOR_HEADER_START = "\033[1;36m";
+	const COLOR_STOP = "\033[0m";
+
+	static private function border($element)
+	{
+		return self::COLOR_BORDER_START . $element . self::COLOR_STOP;
+	}
+
+	static private function header($text)
+	{
+		return self::COLOR_HEADER_START . $text . self::COLOR_STOP;
 	}
 }
