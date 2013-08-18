@@ -7,7 +7,7 @@ define('PARSER_DEBUG_MODE', isset($opts['d']) || isset($opts['debug']));
 
 use Parser\Parser, Parser\Literal, Parser\Phrase, Parser\Container, Parser\Group,
 	Parser\NotOperator as ParserNotOperator, Parser\OrOperator as ParserOrOperator,
-	Dumper;
+	Tree\Dumper;
 
 $tests = array(
 	'проверка  трех слов' => new Container(array(
