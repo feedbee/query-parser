@@ -40,7 +40,7 @@ class Parser
 
 					case '(':
 						// открываем выражение
-						$expression->addChild($cnt = new Container);
+						$expression->addChild($cnt = new Group);
 						$state = self::STATE_NULL;
 						array_push($stack, ')');
 						array_push($stackExpr, $expression);
@@ -107,6 +107,66 @@ class Parser
 
 		return $expression;
 	}
+
+	static public function grabOperatorsArguments(Container $expression)
+	{
+		$coll = $expression;
+
+		$priority = Operator::PRIORITY_MIN;
+		while ($priority <= Operator::PRIORITY_MAX) {
+			for ($i = 0; $i < count($coll); ) {
+				$item = $coll[$i];
+				if ($item instanceof Operator && $item->getPriority() == $priority) {
+					$operator = $item;
+					$type = $operator->getType();
+					if (!$type) { // is type set?
+						// skip
+						$i++;
+						continue;
+					}
+
+					if (!isset($coll[$i + 1])) { // has minimal arguments count?
+						// error (delete)
+						unset($coll[$i]);
+						continue;
+					}
+
+					if ($type == Operator::TYPE_UNARY) {
+						$direction = $operator->getDirection();
+						$operatorPlacementType = $direction == Operator::DIRECTION_L2R ? 'postfix' : 'prefix';
+						$operandIndex = $operatorPlacementType == 'postfix' ? $i - 1 : $i + 1;
+						
+						$treeOpertator = new \Tree\UnaryOperator($operator, array($coll[$operandIndex]));
+						$coll[$i] = $treeOpertator;
+
+						unset($coll[$operandIndex]);
+						// next (increment needed on postfix operation)
+						$operandIndex > $i && $i++;
+
+					} else if ($type == Operator::TYPE_BINARY) {
+						if (!isset($coll[$i - 1])) { // has two arguments?
+							// error (delete)
+							unset($coll[$i]);
+							continue;
+						}
+
+						$treeOpertator = new \Tree\BinaryOperator($operator, array($coll[$i - 1], $coll[$i + 1]));
+						$coll[$i] = $treeOpertator;
+
+						unset($coll[$i - 1]);//$i-1
+						unset($coll[$i]); //$i+1 (shifted down after previous operation)
+						// next (no increment needed)
+					}
+				}
+				// skip
+				$i++;
+			}
+
+			$priority++;
+		}
+
+		return $expression;
+	}
 }
 
 abstract class Expression
@@ -114,7 +174,7 @@ abstract class Expression
 	abstract public function isEqualWith(Expression $expression);
 }
 
-class Container extends Expression implements \IteratorAggregate
+class Container extends Expression implements \IteratorAggregate, \ArrayAccess, \Countable
 {
 	private $childNodes = array();
 
@@ -167,15 +227,55 @@ class Container extends Expression implements \IteratorAggregate
 
 	public function __toString()
 	{
-		if (count($this->childNodes) < 2) {
-			return implode(' ', $this->childNodes);
-		}
-		return '(' . implode(' ', $this->childNodes) . ')';
+		return implode(' ', $this->childNodes);
 	}
 
 	public function getIterator() {
 		return new \ArrayIterator($this->childNodes);
 	}
+
+
+	public function offsetSet($offset, $value)
+	{
+		if (is_null($offset)) {
+			$this->childNodes[] = $value;
+		} else {
+			$this->childNodes[$offset] = $value;
+			$this->childNodes = array_values($this->childNodes);
+		}
+	}
+
+	public function offsetExists($offset)
+	{
+		return isset($this->childNodes[$offset]);
+	}
+
+	public function offsetUnset($offset)
+	{
+		unset($this->childNodes[$offset]);
+		$this->childNodes = array_values($this->childNodes);
+	}
+
+	public function offsetGet($offset)
+	{
+		return isset($this->childNodes[$offset]) ? $this->childNodes[$offset] : null;
+	}
+
+	public function count()
+	{
+		return count($this->childNodes);
+	}
+}
+
+class Group extends Container
+{
+	public function __toString()
+	{
+		if (count($this) < 2) {
+			return parent::__toString();
+		}
+		return '(' . parent::__toString() . ')';
+	}	
 }
 
 class Literal extends Expression
@@ -215,7 +315,15 @@ class Operator extends Expression
 {
 	const PRIORITY_MIN = 1;
 	const PRIORITY_MAX = 3;
-	protected $priority = 0;
+	protected $priority = null;
+
+	const DIRECTION_L2R = 'left-to-right';
+	const DIRECTION_R2L = 'right-to-left';
+	protected $direction = null;
+
+	const TYPE_UNARY = 'unary';
+	const TYPE_BINARY = 'binary';
+	protected $type = null;
 
 	static public function detectAndTranform(Expression $expression)
 	{
@@ -230,6 +338,16 @@ class Operator extends Expression
 	public function getPriority()
 	{
 		return $this->priority;
+	}
+
+	public function getDirection()
+	{
+		return $this->direction;
+	}
+
+	public function getType()
+	{
+		return $this->type;
 	}
 }
 
@@ -261,11 +379,69 @@ class SimpleStandaloneOperator extends Operator
 class NotOperator extends SimpleStandaloneOperator
 {
 	protected $priority = 1;
+	protected $direction = self::DIRECTION_R2L;
+	protected $type = self::TYPE_UNARY;
 	static protected $symbol = '-';
 }
 
 class OrOperator extends SimpleStandaloneOperator
 {
 	protected $priority = 3;
+	protected $direction = self::DIRECTION_L2R;
+	protected $type = self::TYPE_BINARY;
 	static protected $symbol = '|';
+}
+
+
+namespace Tree;
+use Parser\Container;
+
+abstract class Operator extends \Parser\Expression
+{
+	protected $operands;
+	protected $parserOperator;
+
+	public function __construct(\Parser\Operator $parserOperator, array $operands)
+	{
+		$this->setParserOperator($parserOperator);
+		$this->setOperands($operands);
+	}
+
+	public function setParserOperator(\Parser\Operator $parserOperator)
+	{
+		$this->parserOperator = $parserOperator;
+	}
+	
+	public function setOperands(array $operands)
+	{
+		$this->operands = $operands;
+	}
+
+	abstract public function extract();
+
+	public function __toString()
+	{
+		return (string)($this->extract());
+	}
+
+	public function isEqualWith(\Parser\Expression $expression)
+	{
+		return (string)$expression == (string)$this;
+	}
+}
+
+class UnaryOperator extends Operator
+{
+	public function extract()
+	{
+		return new Container(array($this->parserOperator, $this->operands[0]));
+	}
+}
+
+class BinaryOperator extends Operator
+{
+	public function extract()
+	{
+		return new Container(array($this->operands[0], $this->parserOperator, $this->operands[1]));
+	}
 }
