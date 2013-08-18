@@ -553,16 +553,12 @@ class Dumper
 	{
 		!$level && print '╤' . PHP_EOL;
 		foreach ($container as $item) {
+			print str_repeat('│  ', $level) . '├╴' . $item->dump() . PHP_EOL;
+			
 			if ($item instanceof Container) {
-				print str_repeat('│  ', $level) . '├╴' . $item->dump() . PHP_EOL;
 				self::dump($item, $level + 1);
-
 			} else if ($item instanceof Operator) {
-				print str_repeat('│  ', $level) . '├╴' . $item->dump() . PHP_EOL;
 				self::dump($item->getOperands(), $level + 1);
-
-			} else {
-				print str_repeat('│  ', $level) . '├╴' . $item->dump() . PHP_EOL;
 			}
 		}
 	}
