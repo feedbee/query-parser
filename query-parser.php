@@ -1,5 +1,8 @@
 <?php
+
 namespace Parser;
+use \Tree\UnaryOperator;
+use \Tree\BinaryOperator;
 
 class Parser
 {
@@ -96,7 +99,8 @@ class Parser
 			} else {
 				foreach ($operators as $operatorClassName) {
 					$operatorClassName = 'Parser\\' . $operatorClassName;
-					$result = $operatorClassName::detectAndTranform($node);
+					/** @var $operatorClassName Operator */
+					$result = $operatorClassName::detectAndTransform($node);
 					if ($result != $node) {
 						$expression->replaceNode($key, $result);
 						continue;
@@ -117,14 +121,14 @@ class Parser
 		}
 
 		$collection = $expression;
-		$invertor = new Invertor($collection);
+		$inverter = new Inverter($collection);
 
 		$directions = array(Operator::DIRECTION_L2R, Operator::DIRECTION_R2L);
 		$priority = Operator::PRIORITY_MIN;
 		while ($priority <= Operator::PRIORITY_MAX) {
 			foreach ($directions as $direction) {
 
-				$coll = $direction == Operator::DIRECTION_R2L ? $invertor : $collection;
+				$coll = $direction == Operator::DIRECTION_R2L ? $inverter : $collection;
 				for ($i = 0; $i < count($coll); ) {
 					$item = $coll[$i];
 					if ($item instanceof Operator
@@ -146,8 +150,8 @@ class Parser
 						}
 
 						if ($type == Operator::TYPE_UNARY) {
-							$treeOpertator = new \Tree\UnaryOperator($operator, array($coll[$i - 1]));
-							$coll[$i] = $treeOpertator;
+							$treeOperator = new UnaryOperator($operator, array($coll[$i - 1]));
+							$coll[$i] = $treeOperator;
 
 							unset($coll[$i - 1]);
 							continue;
@@ -160,8 +164,8 @@ class Parser
 								continue;
 							}
 
-							$treeOpertator = new \Tree\BinaryOperator($operator, array($coll[$i - 1], $coll[$i + 1]));
-							$coll[$i] = $treeOpertator;
+							$treeOperator = new BinaryOperator($operator, array($coll[$i - 1], $coll[$i + 1]));
+							$coll[$i] = $treeOperator;
 
 							unset($coll[$i - 1]);//$i-1
 							unset($coll[$i]); //$i+1 (shifted down after previous operation)
@@ -180,11 +184,18 @@ class Parser
 	}
 }
 
-class Invertor implements \IteratorAggregate, \ArrayAccess, \Countable
+interface CollectionInterface extends \IteratorAggregate, \ArrayAccess, \Countable {
+	public function __toString();
+}
+
+class Inverter implements \IteratorAggregate, \ArrayAccess, \Countable
 {
+	/**
+	 * @var \Parser\CollectionInterface
+	 */
 	private $collection;
 
-	public function __construct($collection)
+	public function __construct(CollectionInterface $collection)
 	{
 		$this->collection = $collection;
 	}
@@ -206,7 +217,7 @@ class Invertor implements \IteratorAggregate, \ArrayAccess, \Countable
 
 	public function offsetSet($offset, $value)
 	{
-		return $this->collection->offsetSet($this->invert($offset), $value);
+		$this->collection->offsetSet($this->invert($offset), $value);
 	}
 
 	public function offsetExists($offset)
@@ -239,8 +250,11 @@ abstract class Expression
 	abstract public function __toString();
 }
 
-class Container extends Expression implements \IteratorAggregate, \ArrayAccess, \Countable
+class Container extends Expression implements CollectionInterface
 {
+	/**
+	 * @var Expression[]
+	 */
 	private $childNodes = array();
 
 	public function __construct(array $nodes = array()) {
@@ -407,9 +421,15 @@ abstract class Operator extends Expression
 	const TYPE_BINARY = 'binary';
 	protected $type = null;
 
-	static public function detectAndTranform(Expression $expression)
+	/**
+	 * @param Expression $expression
+	 * @throws \Exception
+	 * @return \Parser\Expression
+	 */
+	static public function detectAndTransform(Expression $expression)
 	{
-		throw new Exception('Every operator class must override this static method', 2);
+		unset($expression); // PHPStorm IDE anti-warning hack
+		throw new \Exception('Every operator class must override this static method', 2);
 	}
 
 	public function isEqualWith(Expression $expression)
@@ -442,10 +462,10 @@ class SimpleStandaloneOperator extends Operator
 {
 	static protected $symbol = null;
 
-	static public function detectAndTranform(Expression $expression)
+	static public function detectAndTransform(Expression $expression)
 	{
 		if (is_null(static::$symbol)) {
-			throw new Exception('Operator symbol must be declared in successor-classes', 3);
+			throw new \Exception('Operator symbol must be declared in successor-classes', 3);
 		}
 		if ($expression instanceof Literal) {
 			$string = ((string)$expression);
@@ -459,7 +479,7 @@ class SimpleStandaloneOperator extends Operator
 
 	public function __toString()
 	{
-		return static::$symbol;
+		return (string)static::$symbol;
 	}
 }
 
@@ -482,8 +502,9 @@ class OrOperator extends SimpleStandaloneOperator
 
 namespace Tree;
 use Parser\Container;
+use Parser\Expression;
 
-abstract class Operator extends \Parser\Expression
+abstract class Operator extends Expression
 {
 	protected $operands;
 	protected $parserOperator;
@@ -524,7 +545,7 @@ abstract class Operator extends \Parser\Expression
 		return "[{$this->getParserOperator()}] <to>";
 	}
 
-	public function isEqualWith(\Parser\Expression $expression)
+	public function isEqualWith(Expression $expression)
 	{
 		return (string)$expression == (string)$this;
 	}
@@ -558,15 +579,17 @@ class Dumper
 		foreach ($container as $item) {
 			$isLast = $i == $cntrChildrenCount - 1;
 
+			/** @var Expression $item */
 			print self::repeat($level, $lastElementsMarks) . self::border(($isLast ? '└' : '├') . '╴') . self::header($item->dump()) . PHP_EOL;
 
-			$dumpClildren = null;
-			$item instanceof Container && $dumpClildren = $item;
-			$item instanceof Operator && $dumpClildren = $item->getOperands();
+			$dumpChildren = null;
+			$item instanceof Container && $dumpChildren = $item;
+			/** @var Operator $item */
+			$item instanceof Operator && $dumpChildren = $item->getOperands();
 
-			if ($dumpClildren) {
+			if ($dumpChildren) {
 				$newLastElementsMarks = array_merge($lastElementsMarks, array($isLast));
-				self::dump($dumpClildren, $level + 1, $newLastElementsMarks);
+				self::dump($dumpChildren, $level + 1, $newLastElementsMarks);
 			}
 
 			$i++;
