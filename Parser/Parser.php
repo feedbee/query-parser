@@ -90,7 +90,7 @@ class Parser
 	{
 		$string = preg_replace('/(?<!^|\W)\|(?!\W|$)/u', ' | ', $string); // wrap | with spaces
 		$string = preg_replace('/(?<=^|\W)-(?=\S+)/u', '- ', $string); // minus in word start position is operator: add space after
-		$string = preg_replace('/\s+/u', ' ', $string); // replace any count of any space characted with single space
+		$string = preg_replace('/\s+/u', ' ', $string); // replace any count of any space characters with single space
 
 		return $string;
 	}
