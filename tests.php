@@ -5,8 +5,8 @@ require 'query-parser.php';
 $opts = getopt("d", array('debug'));
 define('PARSER_DEBUG_MODE', isset($opts['d']) || isset($opts['debug']));
 
-use Parser\Parser, Parser\Literal, Parser\Phrase, Parser\Container, Parser\Group,
-	Parser\NotOperator as ParserNotOperator, Parser\OrOperator as ParserOrOperator,
+use Parser\Parser, Parser\Expression\Literal, Parser\Expression\Phrase, Parser\Expression\Container, Parser\Expression\Group,
+	Parser\Expression\NotOperator as ParserNotOperator, Parser\Expression\OrOperator as ParserOrOperator,
 	Tree\Dumper;
 
 $tests = array(
@@ -93,11 +93,11 @@ $tests = array(
 );
 
 $i = $ok = $fail = 0;
-foreach ($tests as $input => $etalon) {
+foreach ($tests as $input => $sample) {
 	$i++;
 	$result = Parser::grabOperatorsArguments(Parser::detectOperators(Parser::parse($input)));
 
-	if ((string)$result == (string)$etalon) {
+	if ((string)$result == (string)$sample) {
 		echo "\033[0;32m[$i]\033[0m Success: `{$input}`" . PHP_EOL;
 		$ok++;
 
@@ -112,13 +112,13 @@ foreach ($tests as $input => $etalon) {
 		if (PARSER_DEBUG_MODE) {
 			print PHP_EOL . "[$i] Result: " . PHP_EOL;
 			Dumper::dump($result);
-			print PHP_EOL . "[$i] Etalon: " . PHP_EOL;
-			Dumper::dump($etalon);
+			print PHP_EOL . "[$i] Sample: " . PHP_EOL;
+			Dumper::dump($sample);
 			print PHP_EOL;
 		}
 	}
 }
 
-echo "All tests complated. \033[0;32m$ok\033[0m test" . ($ok > 1 ? 's' : '')
-	. " successed, " . ($fail > 0 ? "\033[0;31m" : '') . "$fail" . ("\033[0m")
+echo "All tests completed. \033[0;32m$ok\033[0m test" . ($ok > 1 ? 's' : '')
+	. " succeeded, " . ($fail > 0 ? "\033[0;31m" : '') . "$fail" . ("\033[0m")
 	. " test" . ($fail > 1 ? 's' : '') . " failed." . PHP_EOL;
