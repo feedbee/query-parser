@@ -101,4 +101,9 @@ class Container extends Expression implements CollectionInterface
 	{
 		return count($this->childNodes);
 	}
+
+    public function isEmpty()
+    {
+        return empty($this->childNodes);
+    }
 }

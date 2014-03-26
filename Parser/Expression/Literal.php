@@ -30,4 +30,9 @@ class Literal extends Expression
 	{
 		return "l\"{$this}\"";
 	}
+
+    public function isEmpty()
+    {
+        return strlen($this->string) == 0 ? true : false;
+    }
 }

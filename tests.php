@@ -7,7 +7,7 @@ define('PARSER_DEBUG_MODE', isset($opts['d']) || isset($opts['debug']));
 
 use Parser\Parser, Parser\Expression\Literal, Parser\Expression\Phrase, Parser\Expression\Container, Parser\Expression\Group,
 	Parser\Expression\NotOperator as ParserNotOperator, Parser\Expression\OrOperator as ParserOrOperator,
-	Tree\Dumper;
+	Tree\Dumper, Purifier\ParserPurifier, Purifier\GroupPurifier;
 
 $tests = array(
 	'проверка  трех слов' => new Container(array(
@@ -55,7 +55,7 @@ $tests = array(
 		)),
 		new Literal('слов'),
 	)))),
-	'(A|B) | (C - D) "F"' => new Container(array(
+	'(A|B)|(C - D) "F"' => new Container(array(
 		new Group(array(
 			new Literal('A'),
 			new ParserOrOperator(),
@@ -78,19 +78,103 @@ $tests = array(
 		new ParserNotOperator(),
 		new Literal('A'),
 	)),
-	/* After filters Sphinx special tests
+
+    //custom tests
+
 	'-' => new Container(),
-	'xx|' => new Container(),
+
+	'xx|' => new Container(array(
+            new Literal('xx')
+    )),
+
 	'xx|yy' => new Container(array(
 		new Literal('xx'),
 		new ParserOrOperator(),
 		new Literal('yy'),
 	)),
-	'|yy' => new Container(),
-	'-xxx -yyy' => new Container(),
-	'-(-xx) ss' => new Container(),
-	*/
+
+	'|yy' => new Container(array(
+        new Literal('yy')
+    )),
+
+
+	'-xxx -yyy' => new Container(array(
+        new ParserNotOperator(),
+        new Literal('xxx'),
+        new ParserNotOperator(),
+        new Literal('yyy')
+    )),
+
+	'-(-xx) ss' => new Container(array(
+        new ParserNotOperator(),
+        new Group(array(
+            new ParserNotOperator(),
+            new Literal('xx')
+        )),
+        new Literal('ss')
+    )),
+
+    // OMFG situations
+
+    'a||||' => new Container(array(
+        new Literal('a'),
+        new ParserOrOperator(),
+        new Literal('|||')
+    )),
+
+    '(a))' => new Container(array(
+        new Group(array(
+            new Literal('a')
+        )),
+        new Literal(')')
+    )),
+
+    '(a|)' => new Container(array(
+        new Group(array(
+            new Literal('a')
+        )),
+        new ParserOrOperator(),
+        new Literal(')')
+    )),
+
+    'a()||||b' => new Container(array(
+        new Literal('a'),
+        new Group(array()),
+        new ParserOrOperator(),
+        new Literal('|||b')
+    )),
+
+    'ab)(d' => new Container(array(
+        new Literal('ab)'),
+        new Group(array(
+            new Literal('d')
+        )),
+    ))
+
 );
+
+//$in= '---(-asd --(((--(((()""||x((a)(b))';
+$in= '(asdf) -xxx - yyy';
+echo $in . "<br>";
+
+$out = '';
+
+$result = Parser::grabOperatorsArguments(Parser::detectOperators(Parser::parse($in)));
+
+echo $result . "<br>";
+
+$purifier = new GroupPurifier();
+
+$out = $purifier->deep($result);
+$out = $purifier->deepTwo($result);
+
+echo "out : " . $out;
+
+$x = $out;
+
+//var_dump($result[0]);
+
+die;
 
 $i = $ok = $fail = 0;
 foreach ($tests as $input => $sample) {
