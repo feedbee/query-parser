@@ -51,4 +51,9 @@ abstract class Operator extends Expression
 	{
 		return "[$this] <po>";
 	}
+
+    public function isEmpty()
+    {
+        return true;
+    }
 }

@@ -83,24 +83,16 @@ class Parser
 		return $expression;
 	}
 
-//    static function getRecursiveLastLiteralNode($node)
-//    {
-//        if ($node instanceof Container) {
-//            $node = $node->getLastChild();
-//            $node = self::getRecursiveLastLiteralNode($node);
-//            return $node;
-//        } else if ($node instanceof Literal) {
-//            return $node;
-//        }
-//    }
-
 	private static function adapt($string)
 	{
         $string = str_replace('|', ' | ', $string);
-		//$string = preg_replace('/(?<!\|)\|/u', ' | ', $string); // wrap | with spaces
-        $string = preg_replace('/(?<=\w) - (?=\w)/u', '-', $string);
-        $string = preg_replace('/(?<=\w)-(?=\W)/u', ' -', $string);
-		$string = preg_replace('/(?<=^|\W)-(?=\S+)/u', '- ', $string); // minus in word start position is operator: add space after
+        $string = str_replace('(-', '( -', $string);
+        $string = str_replace(')-', ') -', $string);
+        $string = preg_replace('/(-{2,})+/u', '-', $string);
+        $string = preg_replace('/(?<!^| )-(?=\w|\()/u', ' ', $string);
+        $string = preg_replace('/(?<=^| )-(?!\w|\()/u', ' ', $string);
+        $string = preg_replace('/(?<!^| )-(?!\w|\()/u', ' ', $string);
+        $string = str_replace('-', '- ', $string);
 		$string = preg_replace('/\s+/u', ' ', $string); // replace any count of any space characters with single space
 
 		return $string;
@@ -160,7 +152,7 @@ class Parser
 							continue;
 						}
 
-						if (!isset($coll[$i - 1]) || (!$coll[$i - 1] instanceof \Tree\Operator && $coll[$i - 1]->isEmpty())) { // has first required argument and this argument is not empty?
+						if (!isset($coll[$i - 1]) || (!($coll[$i - 1] instanceof \Tree\Operator) && $coll[$i - 1]->isEmpty())) { // has first required argument and this argument is not empty?
 							// error (delete)
 							unset($coll[$i]);
 							continue;
@@ -175,7 +167,7 @@ class Parser
 							// next (no increment needed)
 
 						} else if ($type == Operator::TYPE_BINARY) {
-							if (!isset($coll[$i + 1]) || get_class($coll[$i]) ==  get_class($coll[$i + 1]) || (!$coll[$i + 1] instanceof \Tree\Operator && $coll[$i + 1]->isEmpty())) { // has second arguments? next arg is not operator
+							if (!isset($coll[$i + 1]) || get_class($coll[$i]) ==  get_class($coll[$i + 1]) || (!($coll[$i + 1] instanceof \Tree\Operator) && $coll[$i + 1]->isEmpty())) { // has second arguments? next arg is not operator
 								// error (delete)
 								unset($coll[$i]);
 								continue;

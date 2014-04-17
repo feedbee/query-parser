@@ -20,5 +20,5 @@ require_once('Parser/Inverter.php');
 require_once('Parser/Parser.php');
 
 require_once('Purifier/PurifierInterface.php');
-require_once('Purifier/GroupPurifier.php');
-require_once('Purifier/ParserPurifier.php');
+require_once('Purifier/TreePurifier.php');
+require_once('Tree/HtmlDumper.php');

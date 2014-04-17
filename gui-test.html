@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Gui Test</title>
+    <style>
+        * {
+            font: 14px Arial;
+        }
+
+        b {
+            font-weight: bold;
+        }
+
+        input {
+            margin-bottom: 20px;
+            padding: 5px;
+        }
+
+        .result,
+        .tree {
+            border: 1px solid #ccc;
+            min-width: 580px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tree {
+            font-family: Courier;
+        }
+    </style>
+</head>
+<body>
+<form method="get">
+    <input type="text" style="width: 600px" placeholder="enter the query">
+    <input type="submit" value="Фильтровать">
+</form>
+<br>
+<b>Результат</b>
+<div class="result"></div>
+
+<b>Дерево</b>
+<div class="tree"></div>
+
+<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<script>
+    $('form').submit(function () {
+        var inputText = $("input[type=text]").val();
+        console.log(inputText);
+        $.ajax({
+            url: 'gui-test.php',
+            dataType: 'json',
+            type: 'POST',
+            data: {data: inputText},
+            success: function (data) {
+                $('.result').text(data.result);
+                $('.tree').html(data.tree);
+            },
+            error: function (err) {
+                $.post('gui-test-log.php', {error: err.responseText, data: inputText});
+                alert('Произошла ошибка, результат записан в лог!');
+            }
+        });
+
+        return false;
+    });
+</script>
+</body>
+</html>

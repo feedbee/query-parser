@@ -7,7 +7,7 @@ define('PARSER_DEBUG_MODE', isset($opts['d']) || isset($opts['debug']));
 
 use Parser\Parser, Parser\Expression\Literal, Parser\Expression\Phrase, Parser\Expression\Container, Parser\Expression\Group,
 	Parser\Expression\NotOperator as ParserNotOperator, Parser\Expression\OrOperator as ParserOrOperator,
-	Tree\Dumper, Purifier\ParserPurifier, Purifier\GroupPurifier;
+	Tree\Dumper;
 
 $tests = array(
 	'проверка  трех слов' => new Container(array(
@@ -137,13 +137,6 @@ $tests = array(
         new Literal(')')
     )),
 
-    'a()||||b' => new Container(array(
-        new Literal('a'),
-        new Group(array()),
-        new ParserOrOperator(),
-        new Literal('|||b')
-    )),
-
     'ab)(d' => new Container(array(
         new Literal('ab)'),
         new Group(array(
@@ -152,29 +145,6 @@ $tests = array(
     ))
 
 );
-
-//$in= '---(-asd --(((--(((()""||x((a)(b))';
-$in= '(asdf) -xxx - yyy';
-echo $in . "<br>";
-
-$out = '';
-
-$result = Parser::grabOperatorsArguments(Parser::detectOperators(Parser::parse($in)));
-
-echo $result . "<br>";
-
-$purifier = new GroupPurifier();
-
-$out = $purifier->deep($result);
-$out = $purifier->deepTwo($result);
-
-echo "out : " . $out;
-
-$x = $out;
-
-//var_dump($result[0]);
-
-die;
 
 $i = $ok = $fail = 0;
 foreach ($tests as $input => $sample) {
