@@ -1,6 +1,8 @@
 <?php
 
-use Parser\Parser, Purifier\TreePurifier, Tree\HtmlDumper;
+use QueryParser\Parser\Parser;
+use QueryParser\Purifier\TreePurifier;
+use QueryParser\Tree\HtmlDumper;
 
 require 'query-parser.php';
 

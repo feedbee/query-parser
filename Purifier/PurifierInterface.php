@@ -1,6 +1,7 @@
 <?php
-namespace Purifier;
+namespace QueryParser\Purifier;
 
-interface PurifierInterface {
+interface PurifierInterface
+{
     public function purify();
 } 

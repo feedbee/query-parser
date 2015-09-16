@@ -1,35 +1,35 @@
 <?php
 
-namespace Parser\Expression;
+namespace QueryParser\Parser\Expression;
 
 class Literal extends Expression
 {
-	private $string = "";
+    private $string = "";
 
-	public function __construct($string = "")
-	{
-		$this->string = $string;
-	}
+    public function __construct($string = "")
+    {
+        $this->string = $string;
+    }
 
-	public function appendString($string)
-	{
-		$this->string .= $string;
-	}
+    public function appendString($string)
+    {
+        $this->string .= $string;
+    }
 
-	public function isEqualWith(Expression $expression)
-	{
-		return $expression instanceof static && (string)$expression == (string)$this;
-	}
+    public function isEqualWith(Expression $expression)
+    {
+        return $expression instanceof static && (string)$expression == (string)$this;
+    }
 
-	public function __toString()
-	{
-		return $this->string;
-	}
+    public function __toString()
+    {
+        return $this->string;
+    }
 
-	public function dump()
-	{
-		return "l\"{$this}\"";
-	}
+    public function dump()
+    {
+        return "l\"{$this}\"";
+    }
 
     public function isEmpty()
     {

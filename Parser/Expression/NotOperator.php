@@ -1,11 +1,11 @@
 <?php
 
-namespace Parser\Expression;
+namespace QueryParser\Parser\Expression;
 
 class NotOperator extends SimpleStandaloneOperator
 {
-	protected $priority = 1;
-	protected $direction = self::DIRECTION_R2L;
-	protected $type = self::TYPE_UNARY;
-	static protected $symbol = '-';
+    static protected $symbol = '-';
+    protected $priority = 1;
+    protected $direction = self::DIRECTION_R2L;
+    protected $type = self::TYPE_UNARY;
 }

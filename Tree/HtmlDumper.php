@@ -2,9 +2,9 @@
 /**
  * Designed for monospace fonts!
  */
-namespace Tree;
+namespace QueryParser\Tree;
 
-use Parser\Expression\Literal;
+use QueryParser\Parser\Expression\Literal;
 
 class HtmlDumper
 {
@@ -35,7 +35,7 @@ class HtmlDumper
         $this->iteration++;
         $sourceArray = $source;
 
-        if ($source instanceof \Tree\Operator) {
+        if ($source instanceof Operator) {
             $sourceArray = $source->getOperands();
         }
 

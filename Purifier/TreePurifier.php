@@ -1,13 +1,14 @@
 <?php
 
-namespace Purifier;
+namespace QueryParser\Purifier;
 
-use Parser\Expression\Container;
-use Parser\Expression\Group;
-use Parser\Expression\Literal;
-use Parser\Expression\Phrase;
-use Tree\BinaryOperator;
-use Tree\UnaryOperator;
+use QueryParser\Parser\Expression\Container;
+use QueryParser\Parser\Expression\Group;
+use QueryParser\Parser\Expression\Literal;
+use QueryParser\Parser\Expression\Phrase;
+use QueryParser\Tree\BinaryOperator;
+use QueryParser\Tree\UnaryOperator;
+use QueryParser\Tree\Operator;
 
 class TreePurifier implements PurifierInterface
 {
@@ -24,6 +25,11 @@ class TreePurifier implements PurifierInterface
         return $this->traverseSource($this->source);
     }
 
+    /**
+     * @param \QueryParser\Parser\Expression\Container $source
+     * @param bool|false $first
+     * @return null|\QueryParser\Parser\Expression\Expression
+     */
     public function traverseGroup($source, $first = false)
     {
 
@@ -61,13 +67,17 @@ class TreePurifier implements PurifierInterface
         return $source;
     }
 
+    /**
+     * @param \QueryParser\Parser\Expression\Container | \QueryParser\Parser\Expression\Expression $source
+     * @return Group
+     */
     public function traverseSource($source)
     {
         $offsetKey = 0;
 
         $sourceArray = $source;
 
-        if ($source instanceof \Tree\Operator) {
+        if ($source instanceof Operator) {
             $sourceArray = $source->getOperands();
         }
 
