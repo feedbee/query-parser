@@ -3,6 +3,7 @@
 use QueryParser\Parser\Parser;
 use QueryParser\Purifier\TreePurifier;
 use QueryParser\Tree\HtmlDumper;
+use QueryParser\Purifier\SphinxNormalizer;
 
 require 'query-parser.php';
 
@@ -12,8 +13,7 @@ if (empty($_POST['data'])) {
 }
 
 $result = Parser::grabOperatorsArguments(Parser::detectOperators(Parser::parse(trim($_POST['data']))));
-$purifier = new TreePurifier($result);
-$out = $purifier->purify();
+$out = (new SphinxNormalizer())->normalize((new TreePurifier($result))->purify());
 
 //--dumper
 $dumper = new HtmlDumper($out);

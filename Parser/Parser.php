@@ -90,8 +90,8 @@ class Parser
         $string = str_replace('(-', '( -', $string);
         $string = str_replace(')-', ') -', $string);
         $string = preg_replace('/(-{2,})+/u', '-', $string);
-        $string = preg_replace('/(?<!^| )-(?=\w|\()/u', ' ', $string);
-        $string = preg_replace('/(?<=^| )-(?!\w|\()/u', ' ', $string);
+        $string = preg_replace('/(?<!^| )-(?=\w|\(|")/u', ' ', $string);
+        $string = preg_replace('/(?<=^| )-(?!\w|\(|")/u', ' ', $string);
         $string = preg_replace('/(?<!^| )-(?!\w|\()/u', ' ', $string);
         $string = str_replace('-', '- ', $string);
         $string = preg_replace('/\s+/u', ' ', $string); // replace any count of any space characters with single space
