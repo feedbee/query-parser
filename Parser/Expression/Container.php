@@ -14,6 +14,11 @@ class Container extends Expression implements CollectionInterface
         $this->childNodes = $nodes;
     }
 
+    public function removeAllChildren()
+    {
+        $this->childNodes = array();
+    }
+
     public function addChild(Expression $expression)
     {
         $this->childNodes[] = $expression;

@@ -73,7 +73,7 @@ class SphinxNormalizer
         $container = $result;
 
         if (self::$isNotOperatorFirst) {
-            $container = new Container() ;
+            $container = new Container();
             $container->addChild(new Literal(self::UNIVERSAL_PLACEHOLDER));
 
             /** @var Container $result */
@@ -116,7 +116,7 @@ class SphinxNormalizer
                     break;
                 }
 
-                if ($this->ruleNoNotAloneOperatorsInOrOperator($item, $source, $offsetKey, $itemPos)) {
+                if ($this->ruleNoNotAloneOperatorsInOrOperator($item)) {
                     $this->process($source);
                     break;
                 }
@@ -136,16 +136,23 @@ class SphinxNormalizer
                     break;
                 }
 
+                if ($this->ruleNoOnlyNotOperatorsInGroup($item)) {
+                    $this->process($source);
+                    break;
+                }
+
                 $this->process($item);
             }
         }
         return $source;
     }
 
-    private function trackFirstNotOperator(Operator $operator) {
+    private function trackFirstNotOperator(Operator $operator)
+    {
 
         if ($operator instanceof UnaryOperator && $operator->getParserOperator() instanceof NotOperator &&
-            self::$isNotOperatorFirst === null) {
+            self::$isNotOperatorFirst === null
+        ) {
             self::$isNotOperatorFirst = true;
         }
     }
@@ -176,6 +183,31 @@ class SphinxNormalizer
         return false;
     }
 
+    private function ruleNoOnlyNotOperatorsInGroup(Group $group)
+    {
+        $isNot = true;
+        $children = [];
+
+        foreach ($group->getChildNodes() as $pos => $node) {
+            if (!$node instanceof UnaryOperator ||
+                ($node instanceof UnaryOperator && !$node->getParserOperator() instanceof NotOperator)) {
+                $isNot = false;
+            }
+            $children[] = $node;
+        }
+
+        if ($isNot === true) {
+            $group->removeAllChildren();
+            array_unshift($children, new Literal(self::UNIVERSAL_PLACEHOLDER));
+
+            foreach ($children as $child) {
+                $group->addChild($child);
+            }
+        }
+
+        return $isNot;
+    }
+
     //---- Operators rules
 
     private function ruleRemoveDuplicateNotUnaryOperator(Operator $operator, $source, $offset, $itemPos)
@@ -195,7 +227,7 @@ class SphinxNormalizer
         return false;
     }
 
-    private function ruleNoNotAloneOperatorsInOrOperator(Operator $operator, $source, $offset, $itemPos)
+    private function ruleNoNotAloneOperatorsInOrOperator(Operator $operator)
     {
         if ($operator instanceof BinaryOperator && $operator->getParserOperator() instanceof OrOperator) {
 
