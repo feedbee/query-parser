@@ -1,7 +1,11 @@
 <?php
 
-namespace Parser\Expression;
+namespace QueryParser\Parser\Expression;
 
-interface CollectionInterface extends \IteratorAggregate, \ArrayAccess, \Countable {
-	public function __toString();
+interface CollectionInterface extends \IteratorAggregate, \ArrayAccess, \Countable
+{
+    /**
+     * @return string
+     */
+    public function __toString();
 }
