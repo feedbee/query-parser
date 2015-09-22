@@ -1,5 +1,5 @@
 {
-  "name": "ferrius/query-parser",
+  "name": "feedbee/query-parser",
   "description": "Parse, filter and repair text search queries to adapt them for Sphinx extended query syntax",
   "type": "library",
   "license": "BSD-3",
